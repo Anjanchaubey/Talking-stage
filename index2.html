@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <title>Talking Stage</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #15101f;
+            --tx: #fbeefa;
+            --mu: #b3a3c9;
+            --pk: #ff82bb;
+            --mt: #7ff0c3;
+            --lv: #9a85ff;
+            --gl: rgba(255, 255, 255, .07);
+            --ln: rgba(255, 255, 255, .13)
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0
+        }
+
+        html,
+        body {
+            min-height: 100%
+        }
+
+        body {
+            font-family: Fredoka, ui-rounded, system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--tx);
+            overflow-x: hidden;
+            padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom)
+        }
+
+        button,
+        input {
+            font: inherit;
+            color: inherit
+        }
+
+        .aur {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            overflow: hidden
+        }
+
+        .aur i {
+            position: absolute;
+            width: 60vmax;
+            height: 60vmax;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: .33;
+            animation: fl 24s ease-in-out infinite alternate
+        }
+
+        .aur i:nth-child(1) {
+            background: #ff5fa8;
+            top: -25%;
+            left: -15%
+        }
+
+        .aur i:nth-child(2) {
+            background: #6d4dff;
+            bottom: -30%;
+            right: -15%;
+            animation-delay: -9s
+        }
+
+        .aur i:nth-child(3) {
+            background: #19d9a3;
+            top: 35%;
+            left: 45%;
+            opacity: .14;
+            animation-delay: -15s
+        }
+
+        @keyframes fl {
+            to {
+                transform: translate(9vw, 7vh) scale(1.2)
+            }
+        }
+
+        main {
+            max-width: 1060px;
+            margin: auto;
+            padding: 18px 20px 120px
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 22px;
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        .chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--gl);
+            border: 1px solid var(--ln);
+            border-radius: 99px;
+            padding: 5px 6px 5px 6px;
+            backdrop-filter: blur(12px)
+        }
+
+        .chip s {
+            text-decoration: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, hsl(var(--h) 90% 70%), hsl(calc(var(--h) + 50) 90% 58%))
+        }
+
+        .chip b {
+            font-weight: 500;
+            font-size: 14px;
+            padding-right: 2px
+        }
+
+        .chip button {
+            border: 0;
+            background: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px 8px;
+            border-radius: 99px
+        }
+
+        .chip button:hover {
+            background: var(--gl)
+        }
+
+        .hero {
+            padding: 44px 0 30px;
+            max-width: 640px
+        }
+
+        .hero h1 {
+            font-size: clamp(34px, 6.5vw, 60px);
+            line-height: 1.05;
+            font-weight: 700;
+            letter-spacing: -.02em
+        }
+
+        .hero p {
+            color: var(--mu);
+            margin: 14px 0 24px;
+            font-size: 18px;
+            line-height: 1.5
+        }
+
+        .btn {
+            border: 0;
+            cursor: pointer;
+            border-radius: 99px;
+            padding: 12px 22px;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--pk), var(--lv));
+            color: #1b1030;
+            box-shadow: 0 8px 30px -8px var(--pk);
+            transition: transform .15s
+        }
+
+        .btn:hover {
+            transform: translateY(-2px)
+        }
+
+        .btn:active {
+            transform: scale(.97)
+        }
+
+        .btn.big {
+            font-size: 17px;
+            padding: 14px 28px
+        }
+
+        .sec {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 10px 0 14px
+        }
+
+        .sec h2 {
+            font-size: 20px;
+            font-weight: 600
+        }
+
+        .stat {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            color: var(--mu);
+            font-size: 13px
+        }
+
+        .stat i {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f66
+        }
+
+        .stat i.on {
+            background: var(--mt);
+            box-shadow: 0 0 10px var(--mt)
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 14px
+        }
+
+        .ch {
+            position: relative;
+            background: var(--gl);
+            border: 1px solid var(--ln);
+            border-radius: 26px;
+            padding: 18px;
+            cursor: pointer;
+            backdrop-filter: blur(14px);
+            overflow: hidden;
+            transition: transform .2s, border-color .2s
+        }
+
+        .ch:hover {
+            transform: translateY(-4px) rotate(-.4deg);
+            border-color: var(--pk)
+        }
+
+        .ch:nth-child(3n+2) {
+            border-radius: 26px 26px 26px 8px
+        }
+
+        .ch:nth-child(3n) {
+            border-radius: 8px 26px 26px 26px
+        }
+
+        .ce {
+            font-size: 34px;
+            margin-bottom: 8px
+        }
+
+        .ch h3 {
+            font-size: 18px;
+            font-weight: 600;
+            overflow-wrap: anywhere
+        }
+
+        .ch p {
+            color: var(--mu);
+            font-size: 14px;
+            margin: 2px 0 14px
+        }
+
+        .foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .foot small {
+            color: var(--mt);
+            font-size: 13px
+        }
+
+        .avs {
+            display: flex
+        }
+
+        .avs s {
+            text-decoration: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #2c2342;
+            display: grid;
+            place-items: center;
+            font-size: 14px;
+            margin-right: -7px;
+            border: 2px solid #241b38
+        }
+
+        .eq {
+            position: absolute;
+            right: 16px;
+            top: 18px;
+            display: flex;
+            gap: 3px;
+            align-items: flex-end;
+            height: 22px
+        }
+
+        .eq i {
+            width: 4px;
+            background: var(--mt);
+            border-radius: 3px;
+            animation: eq 1s ease-in-out infinite
+        }
+
+        .eq i:nth-child(2) {
+            animation-delay: -.3s
+        }
+
+        .eq i:nth-child(3) {
+            animation-delay: -.6s
+        }
+
+        .eq i:nth-child(4) {
+            animation-delay: -.15s
+        }
+
+        @keyframes eq {
+
+            0%,
+            100% {
+                height: 5px
+            }
+
+            50% {
+                height: 22px
+            }
+        }
+
+        .empty {
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 50px 10px;
+            color: var(--mu);
+            line-height: 1.6
+        }
+
+        .orb {
+            width: 84px;
+            height: 84px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #fff7, var(--pk) 40%, var(--lv));
+            animation: br 3s ease-in-out infinite
+        }
+
+        @keyframes br {
+            50% {
+                transform: scale(1.14);
+                box-shadow: 0 0 60px var(--pk)
+            }
+        }
+
+        /* room */
+        .rh h2 {
+            font-size: 24px
+        }
+
+        .rh small {
+            color: var(--mu)
+        }
+
+        .stage {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+            gap: 26px 14px;
+            padding: 36px 0
+        }
+
+        .pc {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            text-align: center
+        }
+
+        .pc b {
+            font-weight: 500;
+            font-size: 14px;
+            overflow-wrap: anywhere
+        }
+
+        .av {
+            position: relative;
+            width: 92px;
+            height: 92px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            font-size: 44px;
+            background: linear-gradient(135deg, hsl(var(--h) 90% 72%), hsl(calc(var(--h) + 50) 90% 58%));
+            box-shadow: 0 0 0 calc(var(--v, 0)*16px) rgba(127, 240, 195, .38);
+            transition: box-shadow .08s, transform .15s
+        }
+
+        .pc.sp .av {
+            transform: scale(1.07)
+        }
+
+        .av u {
+            position: absolute;
+            top: -16px;
+            right: -4px;
+            font-size: 24px;
+            text-decoration: none;
+            transform: rotate(14deg)
+        }
+
+        .av em {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            font-style: normal;
+            font-size: 16px;
+            background: #2a2040;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: grid;
+            place-items: center
+        }
+
+        .mo {
+            border: 1px solid var(--ln);
+            background: var(--gl);
+            border-radius: 99px;
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer
+        }
+
+        .mo:hover {
+            border-color: var(--pk)
+        }
+
+        .dock {
+            position: fixed;
+            left: 50%;
+            bottom: calc(18px + env(safe-area-inset-bottom));
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            background: rgba(30, 22, 48, .75);
+            backdrop-filter: blur(18px);
+            border: 1px solid var(--ln);
+            border-radius: 99px;
+            max-width: calc(100vw - 24px);
+            overflow-x: auto
+        }
+
+        .rb {
+            flex: none;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            border: 0;
+            background: var(--gl);
+            font-size: 22px;
+            cursor: pointer;
+            transition: transform .12s
+        }
+
+        .rb:hover {
+            transform: translateY(-3px)
+        }
+
+        .rb.off {
+            background: #5a2442
+        }
+
+        .rb.red {
+            background: #e0457b
+        }
+
+        .rb.sm {
+            width: 44px;
+            height: 44px;
+            font-size: 20px
+        }
+
+        .sep {
+            width: 1px;
+            height: 30px;
+            background: var(--ln);
+            flex: none
+        }
+
+        .knock {
+            text-align: center;
+            color: var(--mu);
+            padding: 14px;
+            border: 1px dashed var(--ln);
+            border-radius: 20px;
+            margin-top: 20px
+        }
+
+        .fl {
+            position: fixed;
+            bottom: 100px;
+            font-size: 34px;
+            pointer-events: none;
+            animation: up 3.1s ease-out forwards;
+            z-index: 30
+        }
+
+        @keyframes up {
+            to {
+                transform: translate(var(--d), -62vh) scale(1.5);
+                opacity: 0
+            }
+        }
+
+        /* modal + toast */
+        .md {
+            position: fixed;
+            inset: 0;
+            background: rgba(8, 5, 16, .6);
+            backdrop-filter: blur(6px);
+            display: grid;
+            place-items: center;
+            z-index: 40;
+            padding: 16px
+        }
+
+        .md[hidden] {
+            display: none
+        }
+
+        .box {
+            width: min(420px, 100%);
+            background: #241a38;
+            border: 1px solid var(--ln);
+            border-radius: 28px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            animation: pop .22s cubic-bezier(.3, 1.5, .5, 1)
+        }
+
+        @keyframes pop {
+            from {
+                transform: scale(.88);
+                opacity: 0
+            }
+        }
+
+        .box h3 {
+            font-size: 22px
+        }
+
+        .box p {
+            color: var(--mu);
+            font-size: 14px
+        }
+
+        .box input {
+            background: #1a1229;
+            border: 1px solid var(--ln);
+            border-radius: 16px;
+            padding: 12px 14px;
+            outline: 0
+        }
+
+        .box input:focus-visible,
+        button:focus-visible {
+            outline: 2px solid var(--mt);
+            outline-offset: 2px
+        }
+
+        .ems {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap
+        }
+
+        .ems button {
+            width: 42px;
+            height: 42px;
+            font-size: 21px;
+            border-radius: 14px;
+            border: 1px solid var(--ln);
+            background: none;
+            cursor: pointer
+        }
+
+        .ems button.on {
+            background: var(--gl);
+            border-color: var(--pk)
+        }
+
+        .seg {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            background: #1a1229;
+            padding: 5px;
+            border-radius: 99px
+        }
+
+        .seg button {
+            border: 0;
+            background: none;
+            border-radius: 99px;
+            padding: 9px;
+            cursor: pointer
+        }
+
+        .seg button.on {
+            background: var(--lv);
+            color: #16102a;
+            font-weight: 600
+        }
+
+        .pk {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 40vh;
+            overflow: auto
+        }
+
+        .pk button,
+        .ghost {
+            border: 1px solid var(--ln);
+            background: var(--gl);
+            border-radius: 16px;
+            padding: 11px;
+            cursor: pointer;
+            text-align: left
+        }
+
+        .pk button:hover,
+        .ghost:hover {
+            border-color: var(--pk)
+        }
+
+        #ts {
+            position: fixed;
+            top: calc(14px + env(safe-area-inset-top));
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 60;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            pointer-events: none
+        }
+
+        .toast {
+            background: #2e2349;
+            border: 1px solid var(--ln);
+            padding: 9px 16px;
+            border-radius: 99px;
+            font-size: 14px;
+            animation: pop .2s
+        }
+
+        @media(prefers-reduced-motion:reduce) {
+            * {
+                animation-duration: .01s !important;
+                transition: none !important
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="aur"><i></i><i></i><i></i></div>
+    <div id="ts"></div>
+
+    <main id="home">
+        <header>
+            <div class="logo"><span>🎙️</span>Talking Stage</div>
+            <div class="chip" id="me"></div>
+        </header>
+        <section class="hero">
+            <h1>Say it out loud. Nobody knows it's you.</h1>
+            <p>Live audio channels with no sign-up and no real names. Pick a room, or start your own.</p>
+            <button class="btn big" id="mk">Start a channel</button>
+        </section>
+        <div class="sec">
+            <h2>Live now <span id="cnt"></span></h2><span class="stat"><i id="st"></i><span
+                    id="stx">connecting…</span></span>
+        </div>
+        <div id="grid" class="grid"></div>
+    </main>
+
+    <main id="room" hidden>
+        <header class="rh">
+            <div>
+                <h2 id="rt"></h2><small id="rs"></small>
+            </div>
+        </header>
+        <div id="knock" class="knock" hidden>🔐 Checking the password with the room…</div>
+        <div id="stage" class="stage"></div>
+        <div class="dock">
+            <button id="mic" class="rb" aria-label="Toggle microphone">🎙️</button>
+            <span class="sep"></span>
+            <div id="rxb" style="display:flex;gap:6px"></div>
+            <span class="sep"></span>
+            <button id="lv" class="rb red" aria-label="Leave channel">⏻</button>
+        </div>
+    </main>
+
+    <div class="md" id="md" hidden>
+        <div class="box" id="bx"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+    <script>
+        const $ = s => document.querySelector(s), h = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e };
+        const rnd = a => a[Math.random() * a.length | 0], uid = () => Math.random().toString(36).slice(2, 10);
+        const esc = s => String(s ?? '').slice(0, 40).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+        const ADJ = ['Pink', 'Soft', 'Sweet', 'Fluffy', 'Cosmic', 'Sleepy', 'Tiny', 'Dreamy', 'Mellow', 'Sparkly', 'Cozy', 'Bouncy', 'Lazy', 'Velvet', 'Minty', 'Giggly'];
+        const NOUN = ['Pookie', 'Icecream', 'Potato', 'Muffin', 'Noodle', 'Dumpling', 'Marshmallow', 'Pancake', 'Bubble', 'Cupcake', 'Mochi', 'Peach', 'Biscuit', 'Jellybean', 'Waffle', 'Panda'];
+        const EMO = ['🧸', '🍦', '🥔', '🧁', '🍜', '🥟', '🍡', '🥞', '🫧', '🍰', '🍙', '🍑', '🍪', '🍬', '🧇', '🐼'];
+        const RX = ['💖', '🔥', '😂', '👏', '😮', '🎉'], MAXP = 8;
+        const ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+        { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turns:openrelay.metered.ca:443?transport=tcp'], username: 'openrelayproject', credential: 'openrelayproject' }];
+
+        /* identity: random, never asked */
+        let me = null; try { me = JSON.parse(localStorage.ts_me) } catch { }
+        function newMe() { const i = Math.random() * NOUN.length | 0; me = { n: rnd(ADJ) + ' ' + NOUN[i], e: EMO[i], h: Math.random() * 360 | 0 }; try { localStorage.ts_me = JSON.stringify(me) } catch { } }
+        if (!me) newMe();
+        const ME = uid();
+        function drawMe() { $('#me').innerHTML = `<s style="--h:${me.h}">${esc(me.e)}</s><b>${esc(me.n)}</b><button id="rr" title="New random identity" aria-label="New identity">🎲</button>`; $('#rr').onclick = () => { newMe(); drawMe() } }
+        drawMe();
+
+        /* message bus: two free public MQTT brokers, messages de-duplicated */
+        const BR = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'], NS = 'tstage/v1/';
+        const cl = [], subs = new Set(), seen = new Set(), hand = [];
+        let room = null, rs = '';
+        function stat() { const n = cl.filter(c => c.connected).length; $('#st').className = n ? 'on' : ''; $('#stx').textContent = n ? 'online' : 'connecting…' }
+        BR.forEach(u => {
+            const c = mqtt.connect(u, { clientId: 'ts_' + ME + uid().slice(0, 3), reconnectPeriod: 3000, connectTimeout: 8000 });
+            c.on('connect', () => { subs.forEach(t => c.subscribe(t)); stat() }); c.on('close', stat); c.on('error', () => { });
+            c.on('message', (t, m) => { try { const o = JSON.parse(m); if (o.f === ME || seen.has(o.i)) return; seen.add(o.i); if (seen.size > 900) seen.delete(seen.values().next().value); hand.forEach(f => f(t, o)) } catch { } });
+            cl.push(c)
+        });
+        const sub = t => { subs.add(t); cl.forEach(c => c.connected && c.subscribe(t)) }, unsub = t => { subs.delete(t); cl.forEach(c => c.connected && c.unsubscribe(t)) };
+        const pub = (t, o) => { o.i = uid() + uid(); o.f = ME; const s = JSON.stringify(o); cl.forEach(c => c.connected && c.publish(t, s)) };
+        sub(NS + 'dir');
+
+        /* channel directory: owners announce every 4s, entries expire after 12s */
+        const chans = {}; let hs = '';
+        hand.push((t, o) => { if (t === NS + 'dir' && o.t === 'ch' && o.id) { chans[o.id] = { ...o, at: Date.now() }; if (!room) drawHome() } });
+        setInterval(() => { for (const k in chans) if (Date.now() - chans[k].at > 12000) delete chans[k]; if (!room) drawHome() }, 2500);
+        function drawHome() {
+            const L = Object.values(chans).sort((a, b) => b.n - a.n); const s = JSON.stringify(L.map(c => [c.id, c.nm, c.em, c.lk, c.n, c.ow, c.av])); if (s === hs) return; hs = s;
+            $('#cnt').textContent = L.length ? '(' + L.length + ')' : '';
+            $('#grid').innerHTML = L.length ? L.map(c => `<article class="ch" tabindex="0" data-c="${esc(c.id)}"><div class="eq"><i></i><i></i><i></i><i></i></div><div class="ce">${esc(c.em)}</div><h3>${esc(c.nm)} ${c.lk ? '🔒' : ''}</h3><p>hosted by ${esc(c.ow)}</p><div class="foot"><span class="avs">${(Array.isArray(c.av) ? c.av : []).slice(0, 4).map(a => `<s>${esc(a)}</s>`).join('')}</span><small>${c.n | 0} in here</small></div></article>`).join('') : `<div class="empty"><div class="orb"></div>No channels are live yet.<br>Start the first one.</div>`
+        }
+        drawHome();
+        $('#grid').onclick = e => {
+            const el = e.target.closest('[data-c]'); if (!el) return; const c = chans[el.dataset.c]; if (!c) return;
+            if (c.n >= MAXP) return toast('This channel is full (' + MAXP + ' max)');
+            const info = { id: c.id, nm: String(c.nm).slice(0, 28), em: String(c.em).slice(0, 8), lk: !!c.lk };
+            c.lk ? askPw(info) : enter(info, '', false)
+        };
+        $('#grid').onkeydown = e => { if (e.key === 'Enter') $('#grid').onclick(e) };
+
+        /* ui helpers */
+        const M = $('#md'), openM = x => { $('#bx').innerHTML = x; M.hidden = false }, closeM = () => { M.hidden = true };
+        M.onclick = e => { if (e.target === M) closeM() };
+        function toast(m) { const t = h('div', 'toast', m); $('#ts').append(t); setTimeout(() => t.remove(), 3200) }
+        let AC = null;
+        const analyser = st => { try { const s = AC.createMediaStreamSource(st), n = AC.createAnalyser(); n.fftSize = 256; s.connect(n); return n } catch { return null } };
+        const buf = new Uint8Array(128), vol = n => { if (!n) return 0; n.getByteFrequencyData(buf); let s = 0; for (let i = 0; i < 64; i++)s += buf[i]; return s / 64 };
+        (function loop() { if (room) document.querySelectorAll('#stage [data-id]').forEach(el => { const id = el.dataset.id, q = id === ME ? room.self : room.peers[id], v = q && !q.m ? vol(q.an) : 0; el.style.setProperty('--v', Math.min(v / 55, 1)); el.classList.toggle('sp', v > 14) }); requestAnimationFrame(loop) })();
+
+        /* create / join dialogs */
+        let cem = '🎙️', clk = 0;
+        $('#mk').onclick = () => { cem = '🎙️'; clk = 0; openM(`<h3>Start a channel</h3><input id="cn" maxlength="28" placeholder="Channel name, e.g. Late night chill" autocomplete="off"><div class="ems">${['🎙️', '🌙', '🔥', '🎧', '📻', '💬', '☕', '🌸'].map(x => `<button data-e="${x}" class="${x === cem ? 'on' : ''}">${x}</button>`).join('')}</div><div class="seg"><button class="on" data-l="0">🌍 Open to all</button><button data-l="1">🔒 Locked</button></div><input id="cp" type="password" maxlength="32" placeholder="Set a password" hidden autocomplete="off"><p id="ctip">Anyone can walk in. No questions asked.</p><button class="btn" id="go">Go live</button>`); setTimeout(() => $('#cn') && $('#cn').focus(), 50) };
+        function askPw(c) {
+            openM(`<h3>${esc(c.em)} ${esc(c.nm)}</h3><p>This channel is locked. Enter the password to come in.</p><input id="pw" type="password" maxlength="32" placeholder="Password" autocomplete="off"><button class="btn" id="pj">Join</button>`); setTimeout(() => $('#pw') && $('#pw').focus(), 50);
+            const go = () => { const v = $('#pw').value; if (!v) return; closeM(); enter(c, v, false) }; $('#pj').onclick = go; $('#pw').onkeydown = e => { if (e.key === 'Enter') go() }
+        }
+        $('#bx').onclick = e => {
+            const b = e.target.closest('button'); if (!b) return;
+            if (b.dataset.e) { cem = b.dataset.e; document.querySelectorAll('.ems button').forEach(x => x.classList.toggle('on', x === b)) }
+            else if (b.dataset.l != null) { clk = +b.dataset.l; document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b)); $('#cp').hidden = !clk; $('#ctip').textContent = clk ? 'Only people with the password get in.' : 'Anyone can walk in. No questions asked.' }
+            else if (b.id === 'go') { const nm = $('#cn').value.trim() || (me.n + "'s room"), pw = clk ? $('#cp').value : ''; if (clk && !pw) return toast('Set a password first'); closeM(); enter({ id: uid(), nm, em: cem, lk: !!clk }, pw, true) }
+            else if (b.dataset.p) { const id = b.dataset.p; pub(room.p, { t: 'own', id }); setOwner(id); doLeave() }
+            else if (b.id === 'rand') { pub(room.p, { t: 'own', id: rnd(Object.keys(room.peers)) }); doLeave() }
+            else if (b.id === 'stay') closeM()
+        };
+
+        /* room */
+        const send = (id, o) => pub(NS + 'r/' + room.id + '/s/' + id, o);
+        async function enter(c, pw, own) {
+            if (room) return; AC = AC || new (window.AudioContext || window.webkitAudioContext)(); AC.resume();
+            let proof = null, st = null;
+            try { proof = c.lk ? await sha(pw + c.id) : null } catch { return toast('Open this page over https to use locked channels') }
+            try { st = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }) } catch { toast('Mic unavailable, joining as a listener 🎧') }
+            const p = NS + 'r/' + c.id + '/p';
+            room = { ...c, proof, p, inb: NS + 'r/' + c.id + '/s/' + ME, owner: own ? ME : null, peers: {}, allowed: new Set(), knocked: {}, stream: st, ok: own || !c.lk, t0: Date.now(), self: { an: st ? analyser(st) : null, m: !st } };
+            sub(p); sub(room.inb); rs = '';
+            $('#home').hidden = true; $('#room').hidden = false; $('#rt').textContent = c.em + ' ' + c.nm; $('#knock').hidden = room.ok;
+            $('#rxb').replaceChildren(...RX.map(x => { const b = h('button', 'rb sm', x); b.onclick = () => { pub(room.p, { t: 'rx', x }); float(x) }; return b }));
+            micUI(); render();
+            room.tm = setInterval(tick, 3000);
+            if (room.ok) { hello(); if (own) announce() }
+            else room.kt = setTimeout(() => { if (room && !room.ok) { toast('No answer. The channel is gone or the password is wrong.'); doLeave() } }, 9000)
+        }
+        const hello = () => pub(room.p, { t: 'hi', n: me.n, e: me.e, h: me.h, m: room.self.m, ow: room.owner === ME });
+        function announce() { pub(NS + 'dir', { t: 'ch', id: room.id, nm: room.nm, em: room.em, lk: room.lk, n: 1 + Object.keys(room.peers).length, ow: me.n, av: [me.e, ...Object.values(room.peers).slice(0, 3).map(q => q.e)] }) }
+        function tick() {
+            if (!room) return; const now = Date.now();
+            for (const id in room.peers) if (now - room.peers[id].seen > 10000) drop(id);
+            if (room.ok) { hello(); if (room.owner === ME) announce(); if (room.owner !== ME && !room.peers[room.owner] && now - room.t0 > 8000) elect() }
+        }
+        function elect() { setOwner([ME, ...Object.keys(room.peers)].sort()[0]) }
+        function setOwner(id) { room.owner = id; if (id === ME) { toast('You are the host now 👑'); announce() } rs = ''; render() }
+        function drop(id) {
+            const q = room.peers[id]; if (!q) return; q.pc && q.pc.close(); q.a && (q.a.srcObject = null); delete room.peers[id]; if (q.n) toast(q.n + ' left');
+            if (id === room.owner) setTimeout(() => { if (room && room.owner === id) elect() }, 1500); rs = ''; render()
+        }
+        function render() {
+            if (!room) return;
+            const all = [{ id: ME, n: me.n + ' (you)', e: me.e, h: me.h, m: room.self.m }, ...Object.entries(room.peers).filter(([, q]) => q.n).map(([id, q]) => ({ id, ...q }))];
+            const s = JSON.stringify(all.map(a => [a.id, a.n, a.m])) + room.owner; if (s === rs) return; rs = s;
+            $('#rs').textContent = all.length + ' here · ' + (room.lk ? 'locked 🔒' : 'open to all');
+            $('#stage').innerHTML = all.map(a => `<div class="pc" data-id="${esc(a.id)}"><div class="av" style="--h:${a.h | 0}">${esc(a.e)}${a.id === room.owner ? '<u>👑</u>' : ''}${a.m ? '<em>🔇</em>' : ''}</div><b>${esc(a.n)}</b>${room.owner === ME && a.id !== ME ? `<button class="mo" data-o="${esc(a.id)}">Make host</button>` : ''}</div>`).join('')
+        }
+        $('#stage').onclick = e => { const b = e.target.closest('[data-o]'); if (!b || !room) return; const id = b.dataset.o; pub(room.p, { t: 'own', id }); setOwner(id); toast('Host handed over') };
+        function micUI() { const b = $('#mic'); b.textContent = room.self.m ? '🔇' : '🎙️'; b.classList.toggle('off', room.self.m) }
+        $('#mic').onclick = () => { if (!room) return; if (!room.stream) return toast('No microphone access'); const s = room.self; s.m = !s.m; room.stream.getAudioTracks().forEach(t => t.enabled = !s.m); micUI(); hello(); rs = ''; render() };
+        function float(x) { const s = h('span', 'fl', x); s.style.left = (12 + Math.random() * 70) + '%'; s.style.setProperty('--d', (Math.random() * 80 - 40) + 'px'); document.body.append(s); setTimeout(() => s.remove(), 3200) }
+
+        /* leaving + ownership transfer */
+        $('#lv').onclick = () => {
+            if (!room) return; const o = Object.entries(room.peers).filter(([, q]) => q.n);
+            if (room.owner === ME && o.length) openM(`<h3>You're the host 👑</h3><p>Pick who runs this channel after you leave.</p><div class="pk">${o.map(([id, q]) => `<button data-p="${esc(id)}">${esc(q.e)} ${esc(q.n)}</button>`).join('')}</div><button class="ghost" id="rand">🎲 Pick someone at random</button><button class="ghost" id="stay">Stay in the channel</button>`);
+            else doLeave()
+        };
+        function doLeave() {
+            if (!room) return; closeM(); pub(room.p, { t: 'bye' }); clearInterval(room.tm); clearTimeout(room.kt);
+            Object.values(room.peers).forEach(q => { q.pc && q.pc.close(); q.a && (q.a.srcObject = null) });
+            room.stream && room.stream.getTracks().forEach(t => t.stop()); unsub(room.p); unsub(room.inb); room = null;
+            $('#room').hidden = true; $('#home').hidden = false; hs = ''; drawHome()
+        }
+        addEventListener('beforeunload', () => { if (!room) return; if (room.owner === ME) { const o = Object.keys(room.peers); if (o.length) pub(room.p, { t: 'own', id: rnd(o) }) } pub(room.p, { t: 'bye' }) });
+
+        /* room messages */
+        hand.push((t, o) => { if (!room) return; if (t === room.p) presence(o); else if (t === room.inb) signal(o) });
+        function presence(o) {
+            const id = o.f, P = room.peers;
+            if (o.t === 'bye') return drop(id);
+            if (o.t === 'own') { if (o.f === room.owner || !room.owner) setOwner(String(o.id).slice(0, 20)); return }
+            if (o.t === 'rx') { if (RX.includes(o.x) && P[id]) float(o.x); return }
+            if (o.t !== 'hi') return;
+            if (room.lk && !room.knocked[id]) { room.knocked[id] = 1; send(id, { t: 'knock', k: room.proof }) }
+            if (o.ow && !room.owner) { room.owner = id; rs = '' }
+            if (!room.ok) return;
+            if (room.lk && !room.allowed.has(id)) return;
+            let q = P[id]; if (!q) { if (Object.keys(P).length + 1 >= MAXP) return; q = P[id] = {}; toast(String(o.n).slice(0, 30) + ' joined') }
+            Object.assign(q, { n: String(o.n).slice(0, 30), e: String(o.e).slice(0, 8), h: +o.h || 0, m: !!o.m, seen: Date.now() });
+            if (!q.pc && ME < id) call(id);
+            render()
+        }
+        async function signal(o) {
+            const id = o.f;
+            if (o.t === 'knock') { if (!room.ok) return; if (!room.lk || o.k === room.proof) { room.allowed.add(id); send(id, { t: 'ok' }); hello() } else send(id, { t: 'no' }); return }
+            if (o.t === 'ok') { if (!room.ok) { room.ok = true; clearTimeout(room.kt); $('#knock').hidden = true; hello() } return }
+            if (o.t === 'no') { if (!room.ok) { toast('Wrong password 🔒'); doLeave() } return }
+            if (!room.ok || (room.lk && !room.allowed.has(id))) return;
+            const q = room.peers[id] || (room.peers[id] = { seen: Date.now() });
+            try {
+                if (o.t === 'off') { q.pc && q.pc.close(); q.pc = null; const pc = mk(id, false); await pc.setRemoteDescription(o.d); flush(q); await pc.setLocalDescription(await pc.createAnswer()); send(id, { t: 'ans', d: pc.localDescription }) }
+                else if (o.t === 'ans' && q.pc) { await q.pc.setRemoteDescription(o.d); flush(q) }
+                else if (o.t === 'ice') { if (q.pc && q.pc.remoteDescription) q.pc.addIceCandidate(o.c).catch(() => { }); else (q.qd = q.qd || []).push(o.c) }
+            } catch (e) { console.warn('signal', e) }
+        }
+        const flush = q => { (q.qd || []).forEach(c => q.pc.addIceCandidate(c).catch(() => { })); q.qd = [] };
+
+        /* WebRTC mesh: the peer with the smaller id makes the offer */
+        function mk(id, init) {
+            const q = room.peers[id], pc = q.pc = new RTCPeerConnection({ iceServers: ICE });
+            if (room.stream) room.stream.getTracks().forEach(t => pc.addTrack(t, room.stream)); else if (init) pc.addTransceiver('audio', { direction: 'recvonly' });
+            pc.onicecandidate = e => e.candidate && room && send(id, { t: 'ice', c: e.candidate });
+            pc.ontrack = e => { const st = e.streams[0]; if (!st) return; q.a || (q.a = new Audio()); q.a.srcObject = st; q.a.play().catch(() => { }); q.an = analyser(st) };
+            pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed' || pc.connectionState === 'closed') { if (q.pc === pc) { pc.close(); q.pc = null } } };
+            return pc
+        }
+        async function call(id) { try { const pc = mk(id, true); await pc.setLocalDescription(await pc.createOffer()); send(id, { t: 'off', d: pc.localDescription }) } catch (e) { console.warn('call', e) } }
+    </script>
+</body>
+
+</html>
