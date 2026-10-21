@@ -766,14 +766,20 @@
         let me = null; try { me = JSON.parse(localStorage.ts_me) } catch { }
         function newMe() { const i = Math.random() * NOUN.length | 0; me = { n: rnd(ADJ) + ' ' + NOUN[i], e: EMO[i], h: Math.random() * 360 | 0 }; try { localStorage.ts_me = JSON.stringify(me) } catch { } }
         if (!me) newMe();
-        const ME = uid();
+        let ME = uid();
+        try { ME = sessionStorage.ts_me_id || (sessionStorage.ts_me_id = ME) } catch { }
         function drawMe() { $('#me').innerHTML = `<s style="--h:${me.h}">${esc(me.e)}</s><b>${esc(me.n)}</b><button id="rr" title="New random identity" aria-label="New identity">🎲</button>`; $('#rr').onclick = () => { newMe(); drawMe() } }
         drawMe();
 
         /* message bus: two free public MQTT brokers, messages de-duplicated */
-        const BR = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'], NS = 'tstage/v1/';
+        const BR = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'], NS = 'tstage/v1/', ROOM_LEASE = 180000;
         const cl = [], subs = new Set(), seen = new Set(), hand = [];
         let room = null, rs = '';
+        let hostRecovery = null, recoveringHost = false;
+        try {
+            hostRecovery = JSON.parse(sessionStorage.ts_host_room || 'null');
+            if (!hostRecovery || Date.now() - hostRecovery.savedAt > ROOM_LEASE) hostRecovery = null;
+        } catch { hostRecovery = null }
         let pendingInviteId = new URLSearchParams(location.search).get('room');
         if (pendingInviteId && !/^[\w-]{1,32}$/.test(pendingInviteId)) pendingInviteId = null;
         let inviteTimer = pendingInviteId ? setTimeout(() => {
@@ -783,30 +789,58 @@
         }, 20000) : null;
         function stat() { const n = cl.filter(c => c.connected).length; $('#st').className = n ? 'on' : ''; $('#stx').textContent = n ? 'online' : 'connecting…' }
         BR.forEach(u => {
-            const c = mqtt.connect(u, { clientId: 'ts_' + ME + uid().slice(0, 3), reconnectPeriod: 3000, connectTimeout: 8000 });
-            c.on('connect', () => { subs.forEach(t => c.subscribe(t)); stat() }); c.on('close', stat); c.on('error', () => { });
+            const c = mqtt.connect(u, { clientId: 'ts_' + ME + uid().slice(0, 3), protocolVersion: 5, reconnectPeriod: 1500, connectTimeout: 5000 });
+            c.on('connect', () => {
+                subs.forEach(t => c.subscribe(t)); stat();
+                if (room && room.owner === ME) announce();
+                else if (hostRecovery && Date.now() - hostRecovery.savedAt < ROOM_LEASE && !room && !recoveringHost) {
+                    recoveringHost = true;
+                    enter(hostRecovery.channel, '', true, hostRecovery.proof).finally(() => { recoveringHost = false });
+                }
+            }); c.on('close', stat); c.on('error', () => { });
             c.on('message', (t, m) => { try { const o = JSON.parse(m); if (o.f === ME || seen.has(o.i)) return; seen.add(o.i); if (seen.size > 900) seen.delete(seen.values().next().value); hand.forEach(f => f(t, o)) } catch { } });
             cl.push(c)
         });
         const sub = t => { subs.add(t); cl.forEach(c => c.connected && c.subscribe(t)) }, unsub = t => { subs.delete(t); cl.forEach(c => c.connected && c.unsubscribe(t)) };
-        const pub = (t, o) => { o.i = uid() + uid(); o.f = ME; const s = JSON.stringify(o); cl.forEach(c => c.connected && c.publish(t, s)) };
-        sub(NS + 'dir');
+        const pub = (t, o, options = {}) => { const s = JSON.stringify({ ...o, i: uid() + uid(), f: ME }); cl.forEach(c => c.connected && c.publish(t, s, options)) };
+        sub(NS + 'dir/#');
 
-        /* channel directory: owners announce every 4s, entries expire after 12s */
+        /* Retained channel listings expire with the host's three-minute lease. */
         const chans = {}; let hs = '';
+        try {
+            const cached = JSON.parse(localStorage.ts_channels || '{}');
+            for (const [id, channel] of Object.entries(cached)) if (channel.until > Date.now()) chans[id] = channel;
+        } catch { }
+        function saveDirectory() { try { localStorage.ts_channels = JSON.stringify(chans) } catch { } }
         hand.push((t, o) => {
-            if (t !== NS + 'dir' || o.t !== 'ch' || !o.id) return;
+            if (!(t === NS + 'dir' || t.startsWith(NS + 'dir/')) || !o.id) return;
+            if (o.t === 'closed') {
+                delete chans[o.id];
+                saveDirectory();
+                if (!room) drawHome();
+                if (pendingInviteId === o.id) { pendingInviteId = null; clearTimeout(inviteTimer); toast('That channel has been closed by its host.') }
+                if (room && room.id === o.id) { toast('The host closed this channel.'); doLeave() }
+                return;
+            }
+            if (o.t !== 'ch' || (o.until && o.until <= Date.now())) return;
             chans[o.id] = { ...o, at: Date.now() };
+            if (room && room.id === o.id && (!room.host || o.host === room.host)) { room.host = o.host; room.lastHostSeen = o.until ? o.until - ROOM_LEASE : Date.now() }
             if (!room) drawHome();
+            saveDirectory();
             if (pendingInviteId !== o.id) return;
             pendingInviteId = null;
             clearTimeout(inviteTimer);
             if (o.n >= MAXP) return toast('This channel is full (' + MAXP + ' max)');
-            const info = { id: o.id, nm: String(o.nm).slice(0, 28), em: String(o.em).slice(0, 8), lk: !!o.lk };
+            const info = { id: o.id, host: o.host, until: o.until, nm: String(o.nm).slice(0, 28), em: String(o.em).slice(0, 8), lk: !!o.lk };
             if (info.lk) askPw(info);
             else enter(info, '', false);
         });
-        setInterval(() => { for (const k in chans) if (Date.now() - chans[k].at > 12000) delete chans[k]; if (!room) drawHome() }, 2500);
+        setInterval(() => {
+            let changed = false;
+            for (const k in chans) if (Date.now() > (chans[k].until || chans[k].at + ROOM_LEASE)) { delete chans[k]; changed = true }
+            if (changed) saveDirectory();
+            if (!room) drawHome();
+        }, 1000);
         function drawHome() {
             const L = Object.values(chans).sort((a, b) => b.n - a.n); const s = JSON.stringify(L.map(c => [c.id, c.nm, c.em, c.lk, c.n, c.ow, c.av])); if (s === hs) return; hs = s;
             $('#cnt').textContent = L.length ? '(' + L.length + ')' : '';
@@ -816,7 +850,7 @@
         $('#grid').onclick = e => {
             const el = e.target.closest('[data-c]'); if (!el) return; const c = chans[el.dataset.c]; if (!c) return;
             if (c.n >= MAXP) return toast('This channel is full (' + MAXP + ' max)');
-            const info = { id: c.id, nm: String(c.nm).slice(0, 28), em: String(c.em).slice(0, 8), lk: !!c.lk };
+            const info = { id: c.id, host: c.host, until: c.until, nm: String(c.nm).slice(0, 28), em: String(c.em).slice(0, 8), lk: !!c.lk };
             c.lk ? askPw(info) : enter(info, '', false)
         };
         $('#grid').onkeydown = e => { if (e.key === 'Enter') $('#grid').onclick(e) };
@@ -842,6 +876,12 @@
             if (b.dataset.e) { cem = b.dataset.e; document.querySelectorAll('.ems button').forEach(x => x.classList.toggle('on', x === b)) }
             else if (b.dataset.l != null) { clk = +b.dataset.l; document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b)); $('#cp').hidden = !clk; $('#ctip').textContent = clk ? 'Only people with the password get in.' : 'Anyone can walk in. No questions asked.' }
             else if (b.id === 'go') { const nm = $('#cn').value.trim() || (me.n + "'s room"), pw = clk ? $('#cp').value : ''; if (clk && !pw) return toast('Set a password first'); closeM(); enter({ id: uid(), nm, em: cem, lk: !!clk }, pw, true) }
+            else if (b.dataset.close != null) closeRoom()
+            else if (b.id === 'leaveOpen') {
+                if (!room) return;
+                const others = Object.values(room.peers).filter(q => q.n);
+                if (others.length) doLeave(); else closeRoom();
+            }
             else if (b.dataset.p) { const id = b.dataset.p; pub(room.p, { t: 'own', id }); setOwner(id); doLeave() }
             else if (b.id === 'rand') { pub(room.p, { t: 'own', id: rnd(Object.keys(room.peers)) }); doLeave() }
             else if (b.id === 'stay') closeM()
@@ -849,33 +889,56 @@
 
         /* room */
         const send = (id, o) => pub(NS + 'r/' + room.id + '/s/' + id, o);
-        async function enter(c, pw, own) {
+        async function enter(c, pw, own, proofOverride = null) {
             if (room) return; AC = AC || new (window.AudioContext || window.webkitAudioContext)(); AC.resume();
             let proof = null, st = null;
-            try { proof = c.lk ? await sha(pw + c.id) : null } catch { return toast('Open this page over https to use locked channels') }
+            try { proof = c.lk ? proofOverride || await sha(pw + c.id) : null } catch { return toast('Open this page over https to use locked channels') }
             try { st = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }) } catch { toast('Mic unavailable, joining as a listener 🎧') }
             const p = NS + 'r/' + c.id + '/p';
-            room = { ...c, proof, p, inb: NS + 'r/' + c.id + '/s/' + ME, owner: own ? ME : null, peers: {}, allowed: new Set(), knocked: {}, stream: st, ok: own || !c.lk, t0: Date.now(), self: { an: st ? analyser(st) : null, m: !st } };
+            room = { ...c, host: own ? ME : c.host || null, proof, p, inb: NS + 'r/' + c.id + '/s/' + ME, owner: own ? ME : null, peers: {}, allowed: new Set(), knocked: {}, stream: st, ok: own || !c.lk, t0: Date.now(), lastHostSeen: own || !c.until ? Date.now() : c.until - ROOM_LEASE, self: { an: st ? analyser(st) : null, m: !st } };
+            if (own) saveHostRecovery();
             sub(p); sub(room.inb); rs = '';
             $('#home').hidden = true; $('#room').hidden = false; $('#rt').textContent = c.em + ' ' + c.nm; $('#knock').hidden = room.ok;
             $('#rxb').replaceChildren(...RX.map(x => { const b = h('button', 'rb sm', x); b.onclick = () => { pub(room.p, { t: 'rx', x }); float(x) }; return b }));
             micUI(); render();
-            room.tm = setInterval(tick, 3000);
+            room.tm = setInterval(tick, 1000);
             if (room.ok) { hello(); if (own) announce() }
             else room.kt = setTimeout(() => { if (room && !room.ok) { toast('No answer. The channel is gone or the password is wrong.'); doLeave() } }, 9000)
         }
         const hello = () => pub(room.p, { t: 'hi', n: me.n, e: me.e, h: me.h, m: room.self.m, ow: room.owner === ME });
-        function announce() { pub(NS + 'dir', { t: 'ch', id: room.id, nm: room.nm, em: room.em, lk: room.lk, n: 1 + Object.keys(room.peers).length, ow: me.n, av: [me.e, ...Object.values(room.peers).slice(0, 3).map(q => q.e)] }) }
+        function announce() {
+            if (!room || room.owner !== ME) return;
+            const listing = { t: 'ch', id: room.id, host: ME, nm: room.nm, em: room.em, lk: room.lk, n: 1 + Object.keys(room.peers).length, ow: me.n, av: [me.e, ...Object.values(room.peers).slice(0, 3).map(q => q.e)], until: Date.now() + ROOM_LEASE };
+            pub(NS + 'dir', listing);
+            pub(NS + 'dir/' + room.id, listing, { retain: true, qos: 1, properties: { messageExpiryInterval: ROOM_LEASE / 1000 } });
+            room.lastAnnounce = Date.now();
+            saveHostRecovery();
+        }
+        function saveHostRecovery() {
+            if (!room || room.owner !== ME) return;
+            hostRecovery = { channel: { id: room.id, nm: room.nm, em: room.em, lk: room.lk }, proof: room.proof, savedAt: Date.now() };
+            try { sessionStorage.ts_host_room = JSON.stringify(hostRecovery) } catch { }
+        }
+        function clearHostRecovery() {
+            hostRecovery = null;
+            try { sessionStorage.removeItem('ts_host_room') } catch { }
+        }
         function tick() {
             if (!room) return; const now = Date.now();
             for (const id in room.peers) if (now - room.peers[id].seen > 10000) drop(id);
-            if (room.ok) { hello(); if (room.owner === ME) announce(); if (room.owner !== ME && !room.peers[room.owner] && now - room.t0 > 8000) elect() }
+            if (room.ok) {
+                if (now - (room.lastHello || 0) >= 3000) { hello(); room.lastHello = now }
+                if (room.owner === ME && now - (room.lastAnnounce || 0) >= 2000) announce();
+                if (room.owner !== ME && room.lastHostSeen && now - room.lastHostSeen >= ROOM_LEASE) {
+                    toast('The host has been offline for 3 minutes. This channel is closed.');
+                    doLeave();
+                }
+            }
         }
-        function elect() { setOwner([ME, ...Object.keys(room.peers)].sort()[0]) }
-        function setOwner(id) { room.owner = id; if (id === ME) { toast('You are the host now 👑'); announce() } rs = ''; render() }
+        function setOwner(id) { room.owner = id; room.host = id; room.lastHostSeen = Date.now(); if (id === ME) { toast('You are the host now 👑'); announce() } rs = ''; render() }
         function drop(id) {
             const q = room.peers[id]; if (!q) return; q.pc && q.pc.close(); q.a && (q.a.srcObject = null); delete room.peers[id]; if (q.n) toast(q.n + ' left');
-            if (id === room.owner) setTimeout(() => { if (room && room.owner === id) elect() }, 1500); rs = ''; render()
+            rs = ''; render()
         }
         function render() {
             if (!room) return;
@@ -908,17 +971,30 @@
 
         /* leaving + ownership transfer */
         $('#lv').onclick = () => {
-            if (!room) return; const o = Object.entries(room.peers).filter(([, q]) => q.n);
-            if (room.owner === ME && o.length) openM(`<h3>You're the host 👑</h3><p>Pick who runs this channel after you leave.</p><div class="pk">${o.map(([id, q]) => `<button data-p="${esc(id)}">${esc(q.e)} ${esc(q.n)}</button>`).join('')}</div><button class="ghost" id="rand">🎲 Pick someone at random</button><button class="ghost" id="stay">Stay in the channel</button>`);
-            else doLeave()
+            if (!room) return;
+            const o = Object.entries(room.peers).filter(([, q]) => q.n);
+            if (room.owner === ME) {
+                const transfer = o.length ? `<p>Choose someone to keep the channel going.</p><div class="pk">${o.map(([id, q]) => `<button data-p="${esc(id)}">${esc(q.e)} ${esc(q.n)}</button>`).join('')}</div><button class="ghost" id="rand">🎲 Pick someone at random</button>` : '<p>The channel will remain available for up to 3 minutes while you are away.</p>';
+                openM(`<h3>Channel options 👑</h3>${transfer}<button class="ghost" id="leaveOpen">Leave but keep channel open</button><button class="ghost" data-close>Close channel for everyone</button><button class="ghost" id="stay">Stay in the channel</button>`);
+            } else doLeave()
         };
+        function closeRoom() {
+            if (!room || room.owner !== ME) return;
+            publishRoomClosed(room.id);
+            doLeave();
+        }
+        function publishRoomClosed(id) {
+            const closed = { t: 'closed', id };
+            pub(NS + 'dir', closed);
+            pub(NS + 'dir/' + id, closed, { retain: true, qos: 1, properties: { messageExpiryInterval: ROOM_LEASE / 1000 } });
+        }
         function doLeave() {
-            if (!room) return; closeM(); pub(room.p, { t: 'bye' }); clearInterval(room.tm); clearTimeout(room.kt);
+            if (!room) return; clearHostRecovery(); closeM(); pub(room.p, { t: 'bye' }); clearInterval(room.tm); clearTimeout(room.kt);
             Object.values(room.peers).forEach(q => { q.pc && q.pc.close(); q.a && (q.a.srcObject = null) });
             room.stream && room.stream.getTracks().forEach(t => t.stop()); unsub(room.p); unsub(room.inb); room = null;
             $('#room').hidden = true; $('#home').hidden = false; hs = ''; drawHome()
         }
-        addEventListener('beforeunload', () => { if (!room) return; if (room.owner === ME) { const o = Object.keys(room.peers); if (o.length) pub(room.p, { t: 'own', id: rnd(o) }) } pub(room.p, { t: 'bye' }) });
+        addEventListener('beforeunload', () => { if (room && room.owner !== ME) pub(room.p, { t: 'bye' }) });
 
         /* room messages */
         hand.push((t, o) => { if (!room) return; if (t === room.p) presence(o); else if (t === room.inb) signal(o) });
