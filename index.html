@@ -5,6 +5,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <title>Talking Stage</title>
+    <meta name="theme-color" content="#15101f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Talking Stage">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" type="image/png" href="./icon.png">
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+    <link rel="manifest" href="./manifest.webmanifest">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -906,6 +913,7 @@
             return pc
         }
         async function call(id) { try { const pc = mk(id, true); await pc.setLocalDescription(await pc.createOffer()); send(id, { t: 'off', d: pc.localDescription }) } catch (e) { console.warn('call', e) } }
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(e => console.warn('Service worker registration failed', e));
     </script>
 </body>
 
