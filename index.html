@@ -380,6 +380,19 @@
             font-size: 24px
         }
 
+        .invite {
+            flex: none;
+            border: 1px solid var(--ln);
+            border-radius: 999px;
+            background: var(--gl);
+            padding: 9px 14px;
+            cursor: pointer
+        }
+
+        .invite:hover {
+            border-color: var(--mt)
+        }
+
         .rh small {
             color: var(--mu)
         }
@@ -719,6 +732,7 @@
             <div>
                 <h2 id="rt"></h2><small id="rs"></small>
             </div>
+            <button id="invite" class="invite" type="button" title="Share an invite link">🔗 Invite</button>
         </header>
         <div id="knock" class="knock" hidden>🔐 Checking the password with the room…</div>
         <div id="stage" class="stage"></div>
@@ -760,6 +774,13 @@
         const BR = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'], NS = 'tstage/v1/';
         const cl = [], subs = new Set(), seen = new Set(), hand = [];
         let room = null, rs = '';
+        let pendingInviteId = new URLSearchParams(location.search).get('room');
+        if (pendingInviteId && !/^[\w-]{1,32}$/.test(pendingInviteId)) pendingInviteId = null;
+        let inviteTimer = pendingInviteId ? setTimeout(() => {
+            if (!pendingInviteId) return;
+            pendingInviteId = null;
+            toast('That invite room is not live right now.');
+        }, 20000) : null;
         function stat() { const n = cl.filter(c => c.connected).length; $('#st').className = n ? 'on' : ''; $('#stx').textContent = n ? 'online' : 'connecting…' }
         BR.forEach(u => {
             const c = mqtt.connect(u, { clientId: 'ts_' + ME + uid().slice(0, 3), reconnectPeriod: 3000, connectTimeout: 8000 });
@@ -773,7 +794,18 @@
 
         /* channel directory: owners announce every 4s, entries expire after 12s */
         const chans = {}; let hs = '';
-        hand.push((t, o) => { if (t === NS + 'dir' && o.t === 'ch' && o.id) { chans[o.id] = { ...o, at: Date.now() }; if (!room) drawHome() } });
+        hand.push((t, o) => {
+            if (t !== NS + 'dir' || o.t !== 'ch' || !o.id) return;
+            chans[o.id] = { ...o, at: Date.now() };
+            if (!room) drawHome();
+            if (pendingInviteId !== o.id) return;
+            pendingInviteId = null;
+            clearTimeout(inviteTimer);
+            if (o.n >= MAXP) return toast('This channel is full (' + MAXP + ' max)');
+            const info = { id: o.id, nm: String(o.nm).slice(0, 28), em: String(o.em).slice(0, 8), lk: !!o.lk };
+            if (info.lk) askPw(info);
+            else enter(info, '', false);
+        });
         setInterval(() => { for (const k in chans) if (Date.now() - chans[k].at > 12000) delete chans[k]; if (!room) drawHome() }, 2500);
         function drawHome() {
             const L = Object.values(chans).sort((a, b) => b.n - a.n); const s = JSON.stringify(L.map(c => [c.id, c.nm, c.em, c.lk, c.n, c.ow, c.av])); if (s === hs) return; hs = s;
@@ -853,6 +885,23 @@
             $('#stage').innerHTML = all.map(a => `<div class="pc" data-id="${esc(a.id)}"><div class="av" style="--h:${a.h | 0}">${esc(a.e)}${a.id === room.owner ? '<u>👑</u>' : ''}${a.m ? '<em>🔇</em>' : ''}</div><b>${esc(a.n)}</b>${room.owner === ME && a.id !== ME ? `<button class="mo" data-o="${esc(a.id)}">Make host</button>` : ''}</div>`).join('')
         }
         $('#stage').onclick = e => { const b = e.target.closest('[data-o]'); if (!b || !room) return; const id = b.dataset.o; pub(room.p, { t: 'own', id }); setOwner(id); toast('Host handed over') };
+        $('#invite').onclick = async () => {
+            if (!room) return;
+            const inviteUrl = new URL(location.href);
+            inviteUrl.searchParams.set('room', room.id);
+            const data = { title: room.nm + ' | Talking Stage', text: 'Join my live channel on Talking Stage', url: inviteUrl.href };
+            if (navigator.share) {
+                try { await navigator.share(data); return }
+                catch (error) { if (error.name === 'AbortError') return }
+            }
+            try {
+                if (!navigator.clipboard) throw new Error('Clipboard unavailable');
+                await navigator.clipboard.writeText(data.url);
+                toast('Invite link copied 🔗');
+            } catch {
+                window.prompt('Copy this invite link', data.url);
+            }
+        };
         function micUI() { const b = $('#mic'); b.textContent = room.self.m ? '🔇' : '🎙️'; b.classList.toggle('off', room.self.m) }
         $('#mic').onclick = () => { if (!room) return; if (!room.stream) return toast('No microphone access'); const s = room.self; s.m = !s.m; room.stream.getAudioTracks().forEach(t => t.enabled = !s.m); micUI(); hello(); rs = ''; render() };
         function float(x) { const s = h('span', 'fl', x); s.style.left = (12 + Math.random() * 70) + '%'; s.style.setProperty('--d', (Math.random() * 80 - 40) + 'px'); document.body.append(s); setTimeout(() => s.remove(), 3200) }
