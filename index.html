@@ -471,6 +471,20 @@
             border-color: var(--pk)
         }
 
+        .kick {
+            border: 1px solid rgba(224, 69, 123, .45);
+            background: rgba(224, 69, 123, .14);
+            color: #ffd6e2;
+            border-radius: 99px;
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer
+        }
+
+        .kick:hover {
+            background: rgba(224, 69, 123, .3)
+        }
+
         .dock {
             position: fixed;
             left: 50%;
@@ -945,9 +959,25 @@
             const all = [{ id: ME, n: me.n + ' (you)', e: me.e, h: me.h, m: room.self.m }, ...Object.entries(room.peers).filter(([, q]) => q.n).map(([id, q]) => ({ id, ...q }))];
             const s = JSON.stringify(all.map(a => [a.id, a.n, a.m])) + room.owner; if (s === rs) return; rs = s;
             $('#rs').textContent = all.length + ' here · ' + (room.lk ? 'locked 🔒' : 'open to all');
-            $('#stage').innerHTML = all.map(a => `<div class="pc" data-id="${esc(a.id)}"><div class="av" style="--h:${a.h | 0}">${esc(a.e)}${a.id === room.owner ? '<u>👑</u>' : ''}${a.m ? '<em>🔇</em>' : ''}</div><b>${esc(a.n)}</b>${room.owner === ME && a.id !== ME ? `<button class="mo" data-o="${esc(a.id)}">Make host</button>` : ''}</div>`).join('')
+            $('#stage').innerHTML = all.map(a => `<div class="pc" data-id="${esc(a.id)}"><div class="av" style="--h:${a.h | 0}">${esc(a.e)}${a.id === room.owner ? '<u>👑</u>' : ''}${a.m ? '<em>🔇</em>' : ''}</div><b>${esc(a.n)}</b>${room.owner === ME && a.id !== ME ? `<button class="mo" data-o="${esc(a.id)}">Make host</button><button class="kick" data-kick="${esc(a.id)}" title="Remove member from this channel">Remove</button>` : ''}</div>`).join('')
         }
-        $('#stage').onclick = e => { const b = e.target.closest('[data-o]'); if (!b || !room) return; const id = b.dataset.o; pub(room.p, { t: 'own', id }); setOwner(id); toast('Host handed over') };
+        $('#stage').onclick = e => {
+            if (!room || room.owner !== ME) return;
+            const kick = e.target.closest('[data-kick]');
+            if (kick) {
+                const id = kick.dataset.kick;
+                if (!room.peers[id]) return;
+                pub(room.p, { t: 'kick', id });
+                drop(id);
+                announce();
+                toast('Member removed from the channel');
+                return;
+            }
+            const button = e.target.closest('[data-o]');
+            if (!button) return;
+            const id = button.dataset.o;
+            pub(room.p, { t: 'own', id }); setOwner(id); toast('Host handed over')
+        };
         $('#invite').onclick = async () => {
             if (!room) return;
             const inviteUrl = new URL(location.href);
@@ -1001,6 +1031,10 @@
         function presence(o) {
             const id = o.f, P = room.peers;
             if (o.t === 'bye') return drop(id);
+            if (o.t === 'kick') {
+                if (o.id === ME && o.f === room.owner) { toast('The host removed you from this channel.'); doLeave() }
+                return;
+            }
             if (o.t === 'own') { if (o.f === room.owner || !room.owner) setOwner(String(o.id).slice(0, 20)); return }
             if (o.t === 'rx') { if (RX.includes(o.x) && P[id]) float(o.x); return }
             if (o.t !== 'hi') return;
