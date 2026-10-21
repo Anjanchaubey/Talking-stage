@@ -1,6 +1,6 @@
-# Talking Stage
+# BATTALK
 
-Talking Stage is a lightweight, anonymous voice-room website. Visitors can browse live channels, create or join a room, share an invite link, and use reactions while talking.
+BATTALK is a lightweight, anonymous voice-room website. Visitors can browse live channels, create or join a room, share an invite link, and use reactions while talking.
 
 ## Features
 

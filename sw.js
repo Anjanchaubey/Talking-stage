@@ -1,4 +1,4 @@
-const CACHE_NAME = 'talking-stage-v2';
+const CACHE_NAME = 'battalk-v3';
 const APP_FILES = [
   './index.html',
   './manifest.webmanifest',

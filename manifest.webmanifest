@@ -1,6 +1,6 @@
 {
-  "name": "Talking Stage",
-  "short_name": "Talking Stage",
+  "name": "BATTALK",
+  "short_name": "BATTALK",
   "description": "Join a cozy voice room and talk anonymously.",
   "start_url": "./",
   "scope": "./",

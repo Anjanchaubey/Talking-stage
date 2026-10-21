@@ -4,10 +4,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-    <title>Talking Stage</title>
+    <title>BATTALK</title>
     <meta name="theme-color" content="#15101f">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="Talking Stage">
+    <meta name="apple-mobile-web-app-title" content="BATTALK">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" type="image/png" href="./icon.png">
     <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -726,7 +726,7 @@
 
     <main id="home">
         <header>
-            <div class="logo"><span>🎙️</span>Talking Stage</div>
+            <div class="logo"><span>🎙️</span>BATTALK</div>
             <div class="chip" id="me"></div>
         </header>
         <section class="hero">
@@ -982,7 +982,7 @@
             if (!room) return;
             const inviteUrl = new URL(location.href);
             inviteUrl.searchParams.set('room', room.id);
-            const data = { title: room.nm + ' | Talking Stage', text: 'Join my live channel on Talking Stage', url: inviteUrl.href };
+            const data = { title: room.nm + ' | BATTALK', text: 'Join my live channel on BATTALK', url: inviteUrl.href };
             if (navigator.share) {
                 try { await navigator.share(data); return }
                 catch (error) { if (error.name === 'AbortError') return }
